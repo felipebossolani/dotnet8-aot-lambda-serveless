@@ -80,8 +80,9 @@ static class Handlers
         var product = await database.GetProduct(id);
         if (product == null)
         {
-            Logger.LogWarning($"{id} not found");
-            await context.WriteResponse(HttpStatusCode.NotFound, $"{id} not found");
+            Logger.LogWarning($"Id {id} not found.");
+            await context.WriteResponse(HttpStatusCode.NotFound);
+            return;
         }
         await context.WriteResponse(HttpStatusCode.OK, product);
     }
@@ -95,8 +96,21 @@ static class Handlers
             await context.WriteResponse(HttpStatusCode.BadRequest, "Product ID in the body does not match path parameter");
             return;
         }
-        await database.PutProduct(product);
-        await context.WriteResponse(HttpStatusCode.OK, $"Created product with id {id}");
+        try
+        {
+            var updatedProduct = await database.PutProduct(product);
+            await context.WriteResponse(HttpStatusCode.OK, $"Updated product with id {id}. Product details: {product}");
+        }
+        catch (ProductNotFoundException)
+        {
+            Logger.LogWarning($"Id {id} not found.");
+            await context.WriteResponse(HttpStatusCode.NotFound);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failure deleting product");
+            await context.WriteResponse(HttpStatusCode.InternalServerError);
+        }
     }
 }
 

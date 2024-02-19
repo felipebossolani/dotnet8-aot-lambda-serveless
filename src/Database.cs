@@ -28,6 +28,8 @@ internal class Database
     public async Task<Product> PutProduct(Product updatedProduct)
     {
         var product = products.FirstOrDefault(x => x.Id == updatedProduct.Id);
+        if (product is null)
+            throw new ProductNotFoundException();
         /*
         Aqui o produto é readonly por ser um record em memória por isso as linhas abaixo não compilam
         product.Name = updatedProduct.Name;

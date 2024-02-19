@@ -1,0 +1,162 @@
+{
+	"info": {
+		"_postman_id": "fd1d3f29-0c07-4af5-a03c-578adbb88e40",
+		"name": "Bossolani.Products",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "2022478",
+		"_collection_link": "https://meuportfolio.postman.co/workspace/MeuPortfolio~2717f0c1-80fe-42b2-8a75-b6a33ec27dfd/collection/2022478-fd1d3f29-0c07-4af5-a03c-578adbb88e40?action=share&source=collection_link&creator=2022478"
+	},
+	"item": [
+		{
+			"name": "GetAllProducts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetProduct - 200",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/SKU-002",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"SKU-002"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetProduct - 404",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/SKU-006",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"SKU-006"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DeleteProduct - 200",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/SKU-001",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"SKU-001"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DeleteProduct - 404",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/SKU-005",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"SKU-005"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "PutProduct - 200",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"Id\" : \"SKU-001\",\r\n    \"Name\" : \"Hacked Product\",\r\n    \"Price\" : 0.99\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/SKU-001",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"SKU-001"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "PutProduct - 404",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"Id\" : \"SKU-005\",\r\n    \"Name\" : \"Hacked Product\",\r\n    \"Price\" : 0.99\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/SKU-005",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"SKU-005"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
