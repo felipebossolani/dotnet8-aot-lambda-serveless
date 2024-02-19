@@ -1,7 +1,11 @@
 # dotnet8-aot-lambda-serveless
+
 Meu primeiro projeto em dotnet 8, usando AOT, para AWS Lambda.
 
-**Disclaimer:** Isso não é um código para ir para produção. Não há injeções de dependencias, os métodos async não possuem await (por limitação do List<Product>) e bons controles. 
+## Disclaimer
+Isso não é um código para ir para produção. Não há injeções de dependencias, os métodos async não possuem await (por limitação do List<Product>) e bons controles. 
+
+## Como replicar do zero
 
 Instalar os templates da aws lambda:
 ```bash
@@ -14,3 +18,15 @@ dotnet new serverless.NativeAOT --name Bossolani.Products --output .
 ```
 
 Isso irá criar o projeto na pasta raiz com o nome Bossolani.Products
+
+## Como testar
+
+De um play pelo Visual Studio ou pela linha de comando:
+```
+cd src
+dotnet run .\Bossolani.Products.csproj
+```
+
+## Subindo na AWS
+
+WIP
