@@ -1,123 +1,116 @@
-using Amazon.Lambda.Core;
-using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
-using Amazon.Lambda.APIGatewayEvents;
-using System.Text.Json.Serialization;
+using Bossolani.Products;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Net;
+using System.Text.Json;
 
-namespace Bossolani.Products;
+var builder = WebApplication.CreateSlimBuilder(args);
 
-public class Functions
+builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    /// <summary>
-    /// The main entry point for the Lambda function. The main function is called once during the Lambda init phase. It
-    /// initializes the .NET Lambda runtime client passing in the function handler to invoke for each Lambda event and
-    /// the JSON serializer to use for converting Lambda JSON format to the .NET types. 
-    /// </summary>
-    private static async Task Main()
+    options.SerializerOptions.TypeInfoResolver = ApiSerializerContext.Default;
+});
+
+builder.Services.AddSingleton<Database, Database>();
+builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi, options =>
+{
+    options.Serializer = new SourceGeneratorLambdaJsonSerializer<ApiSerializerContext>();
+});
+builder.Logging.ClearProviders();
+builder.Logging.AddJsonConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.UseUtcTimestamp = true;
+    options.TimestampFormat = "hh:mm:ss ";
+});
+
+var app = builder.Build();
+
+Handlers.database = app.Services.GetRequiredService<Database>();
+Handlers.Logger = app.Logger;
+
+app.MapGet("/", Handlers.GetAllProducts);
+app.MapGet("/{id}", Handlers.GetProduct);
+app.MapDelete("/{id}", Handlers.DeleteProduct);
+app.MapPut("/{id}", Handlers.PutProduct);
+app.Run();
+
+static class Handlers
+{
+    internal static Database database;
+    internal static ILogger Logger;
+
+    public static async Task GetAllProducts(HttpContext context)
     {
-        // The "_HANDLER" environment variable is set by the Lambda runtime to the configured value for the function
-        // handler property.
-        var configuredFunctionHandler = Environment.GetEnvironmentVariable("_HANDLER");
-
-        // Native AOT Lambda functions are deployed as a native executable using the provided.al2 Lambda runtime.
-        // The provided.al2 runtime ignores the function handler field and always looks for an executable called "bootstrap".
-        //
-        // As a convention this project template checks the value for the function handler field set in the
-        // serverless template to determine which method should be registered with the Lambda runtime client
-        // to respond to incoming Lambda events. This allows multiple Lambda functions be defined in the
-        // same .NET project using the provided.al2 runtime.
-        Func<APIGatewayProxyRequest, ILambdaContext, APIGatewayProxyResponse> handler = configuredFunctionHandler switch
-        {
-            nameof(GetFunctionHandler) => new Functions().GetFunctionHandler,
-            nameof(PutFunctionHandler) => new Functions().PutFunctionHandler,
-            _ => throw new Exception($"Unknown method to call for handler value {configuredFunctionHandler}")
-        };
-
-        await LambdaBootstrapBuilder.Create(handler, new SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>())
-            .Build()
-            .RunAsync();
+        Logger.LogInformation("Received request to list all products");
+        var products = await database.GetAllProducts();
+        Logger.LogInformation($"Found {products.Count} products(s)");
+        await context.WriteResponse(HttpStatusCode.OK, products);
     }
 
-    /// <summary>
-    /// A Lambda function to respond to HTTP Get methods from API Gateway.
-    ///
-    /// To use this handler to respond to an AWS event, reference the appropriate package from 
-    /// https://github.com/aws/aws-lambda-dotnet#events
-    /// and change the input parameter to the desired event type. When the event type
-    /// is changed, the handler type registered in the main method needs to be updated and the LambdaFunctionJsonSerializerContext 
-    /// defined below will need the JsonSerializable updated. If the return type and event type are different then the 
-    /// LambdaFunctionJsonSerializerContext must have two JsonSerializable attributes, one for each type.
-    ///
-    // When using Native AOT extra testing with the deployed Lambda functions is required to ensure
-    // the libraries used in the Lambda function work correctly with Native AOT. If a runtime 
-    // error occurs about missing types or methods the most likely solution will be to remove references to trim-unsafe 
-    // code or configure trimming options. This sample defaults to partial TrimMode because currently the AWS 
-    // SDK for .NET does not support trimming. This will result in a larger executable size, and still does not 
-    // guarantee runtime trimming errors won't be hit. 
-    /// </summary>
-    /// <param name="request"></param>
-    /// <param name="context"></param>
-    /// <returns></returns>
-    public APIGatewayProxyResponse GetFunctionHandler(APIGatewayProxyRequest request, ILambdaContext context)
+    public static async Task DeleteProduct(HttpContext context)
     {
-        context.Logger.LogInformation("Get Request\n");
-
-        var response = new APIGatewayProxyResponse
+        var id = context.Request.RouteValues["id"].ToString();
+        try
+        {            
+            Logger.LogInformation($"Received request to delete {id}");
+            await database.DeleteProduct(id);
+            Logger.LogInformation("Delete complete");
+            await context.WriteResponse(HttpStatusCode.OK, $"Product with id {id} deleted");
+        }
+        catch (ProductNotFoundException)
         {
-            StatusCode = (int)HttpStatusCode.OK,
-            Body = "Hello AWS Serverless",
-            Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
-        };
-
-        return response;
+            Logger.LogWarning($"Id {id} not found.");
+            await context.WriteResponse(HttpStatusCode.NotFound);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failure deleting product");
+            await context.WriteResponse(HttpStatusCode.InternalServerError);
+        }
     }
 
-    /// <summary>
-    /// A Lambda function to respond to HTTP PUT methods from API Gateway
-    ///
-    /// To use this handler to respond to an AWS event, reference the appropriate package from 
-    /// https://github.com/aws/aws-lambda-dotnet#events
-    /// and change the input parameter to the desired event type. When the event type
-    /// is changed the handler type registered in the main needs to be updated and the LambdaFunctionJsonSerializerContext 
-    /// defined below will need the JsonSerializable updated. If the return type and event type are different then the 
-    /// LambdaFunctionJsonSerializerContext must have two JsonSerializable attributes, one for each type.
-    ///
-    // When using Native AOT extra testing with the deployed Lambda functions is required to ensure
-    // the libraries used in the Lambda function work correctly with Native AOT. If a runtime 
-    // error occurs about missing types or methods the most likely solution will be to remove references to trim-unsafe 
-    // code or configure trimming options. This sample defaults to partial TrimMode because currently the AWS 
-    // SDK for .NET does not support trimming. This will result in a larger executable size, and still does not 
-    // guarantee runtime trimming errors won't be hit. 
-    /// </summary>
-    /// <param name="request"></param>
-    /// <param name="context"></param>
-    /// <returns></returns>
-    public APIGatewayProxyResponse PutFunctionHandler(APIGatewayProxyRequest request, ILambdaContext context)
+    public static async Task GetProduct(HttpContext context)
     {
-        context.Logger.LogInformation("Put Request");
-
-        var response = new APIGatewayProxyResponse
+        var id = context.Request.RouteValues["id"].ToString();
+        Logger.LogInformation($"Received request to get {id}");
+        var product = await database.GetProduct(id);
+        if (product == null)
         {
-            StatusCode = (int)HttpStatusCode.OK,
-            Body = "Processed PUT request",
-            Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
-        };
+            Logger.LogWarning($"{id} not found");
+            await context.WriteResponse(HttpStatusCode.NotFound, $"{id} not found");
+        }
+        await context.WriteResponse(HttpStatusCode.OK, product);
+    }
 
-        return response;
-    } 
+    public static async Task PutProduct(HttpContext context)
+    {
+        var id = context.Request.RouteValues["id"].ToString();
+        var product = await JsonSerializer.DeserializeAsync<Product>(context.Request.Body, ApiSerializerContext.Default.Product);
+        if (product == null || id != product.Id)
+        {
+            await context.WriteResponse(HttpStatusCode.BadRequest, "Product ID in the body does not match path parameter");
+            return;
+        }
+        await database.PutProduct(product);
+        await context.WriteResponse(HttpStatusCode.OK, $"Created product with id {id}");
+    }
 }
 
-/// <summary>
-/// This class is used to register the input event and return type for the FunctionHandler method with the System.Text.Json source generator.
-/// There must be a JsonSerializable attribute for each type used as the input and return type or a runtime error will occur 
-/// from the JSON serializer unable to find the serialization information for unknown types.
-/// </summary>
-[JsonSerializable(typeof(APIGatewayProxyRequest))]
-[JsonSerializable(typeof(APIGatewayProxyResponse))]
-public partial class LambdaFunctionJsonSerializerContext : JsonSerializerContext
+static class ResponseWriter
 {
-    // By using this partial class derived from JsonSerializerContext, we can generate reflection free JSON Serializer code at compile time
-    // which can deserialize our class and properties. However, we must attribute this class to tell it what types to generate serialization code for.
-    // See https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-source-generation
+    public static async Task WriteResponse(this HttpContext context, HttpStatusCode statusCode)
+    {
+        await context.WriteResponse<string>(statusCode, "");
+    }
+
+    public static async Task WriteResponse<TResponseType>(this HttpContext context, HttpStatusCode statusCode, TResponseType body) where TResponseType : class
+    {
+        context.Response.StatusCode = (int)statusCode;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(JsonSerializer.Serialize(body, typeof(TResponseType), ApiSerializerContext.Default));
+    }
 }
