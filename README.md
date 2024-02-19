@@ -27,6 +27,10 @@ cd src
 dotnet run .\Bossolani.Products.csproj
 ```
 
+## Testando locamente
+
+
+
 ## Subindo na AWS
 
 WIP
