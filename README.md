@@ -27,10 +27,16 @@ cd src
 dotnet run .\Bossolani.Products.csproj
 ```
 
-## Testando locamente
+## Build da aplicação
 
-
+```
+sam build
+```
 
 ## Subindo na AWS
 
-WIP
+Primeiramente, garanta que o arquivo MakeFile e o arquivo template.yaml estão corretos.
+
+```
+sam deploy
+```

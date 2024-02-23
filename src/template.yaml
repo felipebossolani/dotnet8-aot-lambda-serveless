@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    MemorySize: 3008
+    Architectures: ["arm64"]
+    Runtime: provided.al2
+    Timeout: 30
+    Tracing: Active
+    Environment:
+      Variables:
+        LOG_GROUP_PREFIX: !Sub "/aws/lambda/dotnet8-aot-lambda-serveless-"
+        LOAD_TEST_TYPE: "NET 8 native AOT Minimal API"
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: Bossolani.Product
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY      
+    Metadata:
+      BuildMethod: makefile
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
